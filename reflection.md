@@ -5,10 +5,27 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 ## 1. What was broken when you started?
 
 - What did the game look like the first time you ran it?
+
+When I first looked at the game, it originally seemed like a well-created game with clear instructions "Guess a number between 1 and 100. Attempts left: 7" and three buttons to carry out different functionalities: Submit Guess, New Game, and Show hint. I was able to enter a number as a guess and submit it, but that is when I realized that the hints it was giving me were incorrect and one of the buttons, "New Game", was not functional. 
+
 - List at least two concrete bugs you noticed at the start  
   (for example: "the hints were backwards").
 
-  One bug I noticed almost immediately was that the hints were the opposite of what the expected hint should have been. When I guessed a number higher than the correct guess, the game would prompt me to guess higher. Additionally, when I guessed a number lower than the correct guess, the game would prompt me to guess lower when it should have prompted me to guess higher. Additionally, when I would try to start a new game using the "New Game" button, the game would not restart. The only thing that changed was the "Attempts left" counter but I was no longer able to submit new guesses. Pressing the "Submit Guess" button does not produce any new outputs. Lastly, when a new game starts and the  "Attempts left" counter refreshes, it does not go down when I click the "Submit Guess" button. With each guess the counter should decrease by one but it stays at the number that it start with. 
+  One bug I noticed almost immediately was that the hints were the opposite of what the expected hint should have been. When I guessed a number higher than the correct guess, the game would prompt me to guess higher when it should have prompted me to guess lower. Additionally, when I guessed a number lower than the correct guess, the game would prompt me to guess lower when it should have prompted me to guess higher. Additionally, when I would try to start a new game using the "New Game" button, the game would not restart. The only thing that changed was the "Attempts left" counter but I was no longer able to submit new guesses. Pressing the "Submit Guess" button does not produce any new outputs. Lastly, when a new game starts and the  "Attempts left" counter refreshes, it does not go down when I click the "Submit Guess" button. With each guess the counter should decrease by one but it stays at the number that it start with.
+
+  AI explanation of one of the bugs:
+
+What happens:
+
+Clicking New Game sets st.session_state.attempts = 0 and a new secret, then immediately calls st.rerun().
+The code later checks if st.session_state.status != "playing": ... st.stop(). Because the New Game handler does NOT reset st.session_state.status, if the previous game had set status to "lost" or "won" that value persists.
+On rerun the guard sees status != "playing", runs the "game over" / "you already won" branch and calls st.stop(). st.stop() halts further execution of the script for that run, so the submit button handler (the if submit: block) never runs — pressing Submit appears to do nothing.
+
+Why the "Attempts left" counter changed but Submit didn't work:
+
+You did set attempts to 0, and the page re-rendered, so the computed "Attempts left" (which is attempt_limit - st.session_state.attempts) updated accordingly.
+But because status was still "lost"/"won", the script reached the early-exit guard and stopped before it evaluated the if submit: branch. So the UI shows the updated attempt count but the app is effectively in a stopped "game over" state and won't process guesses.
+
 
 **Bug Reproduction Log**
 
