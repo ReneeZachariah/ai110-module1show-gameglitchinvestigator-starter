@@ -1,5 +1,9 @@
 import random
 import streamlit as st
+from logic_utils import parse_guess, check_guess
+
+# FIX: `parse_guess` and `check_guess` were refactored into `logic_utils.py`
+# FIX: with the AI - moved logic out of `app.py` to simplify testing
 
 def get_range_for_difficulty(difficulty: str):
     if difficulty == "Easy":
@@ -11,40 +15,7 @@ def get_range_for_difficulty(difficulty: str):
     return 1, 100
 
 
-def parse_guess(raw: str):
-    if raw is None:
-        return False, None, "Enter a guess."
-
-    if raw == "":
-        return False, None, "Enter a guess."
-
-    try:
-        if "." in raw:
-            value = int(float(raw))
-        else:
-            value = int(raw)
-    except Exception:
-        return False, None, "That is not a number."
-
-    return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    try:
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
+# `parse_guess` and `check_guess` are implemented in `logic_utils.py` and imported above.
 
 
 def update_score(current_score: int, outcome: str, attempt_number: int):
@@ -118,11 +89,6 @@ with st.expander("Developer Debug Info"):
     st.write("Difficulty:", difficulty)
     st.write("History:", st.session_state.history)
 
-raw_guess = st.text_input(
-    "Enter your guess:",
-    key=f"guess_input_{difficulty}"
-)
-
 col1, col2, col3 = st.columns(3)
 with col1:
     submit = st.button("Submit Guess 🚀")
@@ -131,11 +97,29 @@ with col2:
 with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
+# FIXME: Logic breaks here
 if new_game:
-    st.session_state.attempts = 0
-    st.session_state.secret = random.randint(1, 100)
+    # Reset to the same initial values used on first load.
+    # FIX: Ensure full game reset (status, score, history) so New Game truly restarts.
+    # (Added  with AI to fix early-exit bug after rerun.)
+    st.session_state.attempts = 1
+    st.session_state.secret = random.randint(low, high)
+    st.session_state.status = "playing"
+    st.session_state.score = 0
+    st.session_state.history = []
+    # Clear the guess input for the current difficulty so the box becomes empty.
+    # FIX: Clearing the session key so the text box empties on new game.
+    st.session_state[f"guess_input_{difficulty}"] = ""
     st.success("New game started.")
     st.rerun()
+
+# Create the guess input AFTER handling New Game so we can safely reset its session key above.
+# FIX: Moved `st.text_input` after New Game/buttons so the session key can be modified
+
+raw_guess = st.text_input(
+    "Enter your guess:",
+    key=f"guess_input_{difficulty}"
+)
 
 if st.session_state.status != "playing":
     if st.session_state.status == "won":
